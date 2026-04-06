@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/task_provider.dart';
+import 'add_task_screen.dart';
+import '../widgets/task_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,18 +46,53 @@ class HomeScreen extends StatelessWidget {
           ),
           body: provider.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : provider.filteredTasks.isEmpty
-              ? _buildEmptyState(context)
-              : _buildTaskList(context, provider),
+              : Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildCategoryChips(context, provider),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: provider.filteredTasks.isEmpty
+                          ? _buildEmptyState(context)
+                          : _buildTaskList(context, provider),
+                    ),
+                  ],
+                ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
-              // Add task screen - later
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+              );
             },
             icon: const Icon(Icons.add_rounded),
             label: const Text('New Task'),
           ),
         );
       },
+    );
+  }
+
+  // Category filter chips
+  Widget _buildCategoryChips(BuildContext context, TaskProvider provider) {
+    return SizedBox(
+      height: 45,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: provider.categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final category = provider.categories[index];
+          final isSelected = provider.selectedCategory == category;
+          return FilterChip(
+            label: Text(category),
+            selected: isSelected,
+            onSelected: (_) => provider.setCategory(category),
+            showCheckmark: false,
+          );
+        },
+      ),
     );
   }
 
@@ -80,9 +117,9 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-}
+  }
 
-// Task List
+  // Task List
   Widget _buildTaskList(BuildContext context, TaskProvider provider) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -90,7 +127,7 @@ class HomeScreen extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final task = provider.filteredTasks[index];
-        return Text(task.title); // Temporary, later TaskCard widget
+        return TaskCard(task: task);
       },
     );
   }

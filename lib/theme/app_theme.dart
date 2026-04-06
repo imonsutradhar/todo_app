@@ -19,7 +19,9 @@ class AppTheme {
       seedColor: primaryColor,
       brightness: Brightness.light,
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(),
+    textTheme: GoogleFonts.poppinsTextTheme(
+      ThemeData.light().textTheme,
+    ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
@@ -47,7 +49,9 @@ class AppTheme {
       seedColor: primaryColor,
       brightness: Brightness.dark,
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(),
+    textTheme: GoogleFonts.poppinsTextTheme(
+      ThemeData.dark().textTheme,
+    ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,

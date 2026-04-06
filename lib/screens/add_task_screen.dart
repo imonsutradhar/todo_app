@@ -8,7 +8,9 @@ import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
 
 class AddTaskScreen extends StatefulWidget {
-  const AddTaskScreen({super.key});
+  final TaskModel? task; // null হলে add mode, থাকলে edit mode
+
+  const AddTaskScreen({super.key, this.task});
 
   @override
   State<AddTaskScreen> createState() => _AddTaskScreenState();
@@ -21,6 +23,19 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Edit mode হলে existing data দিয়ে fields fill করো
+    if (widget.task != null) {
+      _titleController.text = widget.task!.title;
+      _descController.text = widget.task!.description;
+      _categoryController.text = widget.task!.category;
+      _priority = widget.task!.priority;
+      _dueDate = widget.task!.dueDate;
+    }
+  }
 
   // Dispose controllers when screen closes
   @override
@@ -42,25 +57,40 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     if (picked != null) setState(() => _dueDate = picked);
   }
 
-  // Save task to Firebase
+  // Save or update task
   Future<void> _saveTask() async {
     if (_titleController.text.trim().isEmpty) return;
 
     final provider = context.read<TaskProvider>();
 
-    final task = TaskModel(
-      id: const Uuid().v4(),
-      title: _titleController.text.trim(),
-      description: _descController.text.trim(),
-      category: _categoryController.text.trim().isEmpty
-          ? 'General'
-          : _categoryController.text.trim(),
-      priority: _priority,
-      dueDate: _dueDate,
-      userId: FirebaseService().currentUserId ?? '',
-    );
+    if (widget.task != null) {
+      // Edit mode — existing task update করো
+      final updated = widget.task!.copyWith(
+        title: _titleController.text.trim(),
+        description: _descController.text.trim(),
+        category: _categoryController.text.trim().isEmpty
+            ? 'General'
+            : _categoryController.text.trim(),
+        priority: _priority,
+        dueDate: _dueDate,
+      );
+      await provider.updateTask(updated);
+    } else {
+      // Add mode — নতুন task তৈরি করো
+      final task = TaskModel(
+        id: const Uuid().v4(),
+        title: _titleController.text.trim(),
+        description: _descController.text.trim(),
+        category: _categoryController.text.trim().isEmpty
+            ? 'General'
+            : _categoryController.text.trim(),
+        priority: _priority,
+        dueDate: _dueDate,
+        userId: FirebaseService().currentUserId ?? '',
+      );
+      await provider.addTask(task);
+    }
 
-    await provider.addTask(task);
     if (mounted) Navigator.pop(context);
   }
 
@@ -80,7 +110,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Task'),
+        title: Text(widget.task != null ? 'Edit Task' : 'New Task'),
         actions: [
           // Save button in appbar
           TextButton(

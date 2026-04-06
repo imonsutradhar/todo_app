@@ -56,6 +56,11 @@ class TaskProvider extends ChangeNotifier {
     await _firebaseService.deleteTask(taskId);
   }
 
+  // Update existing task
+  Future<void> updateTask(TaskModel task) async {
+    await _firebaseService.updateTask(task);
+  }
+
   // Category filter change
   void setCategory(String category) {
     _selectedCategory = category;

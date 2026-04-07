@@ -5,53 +5,69 @@ import '../services/firebase_service.dart';
 class TaskProvider extends ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
 
-  List<TaskModel> _tasks = [];        // সব tasks
-  String _selectedCategory = 'All';  // Selected category filter
-  bool _isDarkMode = false;           // Dark mode on/off
-  bool _isLoading = false;            // Loading indicator
+  List<TaskModel> _tasks = [];
+  String _selectedCategory = 'All';
+  String _searchQuery = '';
+  bool _isDarkMode = false;
+  bool _isLoading = false;
 
-  // Getters — Read data from outside
+  // Getters
   List<TaskModel> get tasks => _tasks;
   String get selectedCategory => _selectedCategory;
+  String get searchQuery => _searchQuery;
   bool get isDarkMode => _isDarkMode;
   bool get isLoading => _isLoading;
 
-  // filtered tasks by selected category
+  // Filter by category and search query
   List<TaskModel> get filteredTasks {
-    if (_selectedCategory == 'All') return _tasks;
-    return _tasks.where((task) => task.category == _selectedCategory).toList();
+    List<TaskModel> result = _tasks;
+
+    // Filter by category
+    if (_selectedCategory != 'All') {
+      result = result.where((task) => task.category == _selectedCategory).toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      result = result
+          .where((task) =>
+          task.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    return result;
   }
 
-  //  unique categories
+  // All unique categories
   List<String> get categories {
     final cats = _tasks.map((t) => t.category).toSet().toList();
     return ['All', ...cats];
   }
 
-  //  real-time tasks load from FireBase
+  // Load real-time tasks from Firebase
   void loadTasks() {
     _isLoading = true;
-    notifyListeners(); // UI কে জানায় যে data loading হচ্ছে
+    notifyListeners();
 
     _firebaseService.getTasksStream().listen((tasks) {
       _tasks = tasks;
       _isLoading = false;
-      notifyListeners(); //
+      notifyListeners();
     });
   }
 
-  // new task add
+  // Add new task
   Future<void> addTask(TaskModel task) async {
     await _firebaseService.addTask(task);
   }
 
-  // Task complete/incomplete toggle
+  // Toggle task complete/incomplete
   Future<void> toggleTaskComplete(TaskModel task) async {
     final updated = task.copyWith(isCompleted: !task.isCompleted);
     await _firebaseService.updateTask(updated);
   }
 
-  // Task delete
+  // Delete task
   Future<void> deleteTask(String taskId) async {
     await _firebaseService.deleteTask(taskId);
   }
@@ -61,13 +77,19 @@ class TaskProvider extends ChangeNotifier {
     await _firebaseService.updateTask(task);
   }
 
-  // Category filter change
+  // Change category filter
   void setCategory(String category) {
     _selectedCategory = category;
     notifyListeners();
   }
 
-  // Dark mode toggle
+  // Search tasks by title
+  void searchTasks(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  // Toggle dark mode
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
     notifyListeners();

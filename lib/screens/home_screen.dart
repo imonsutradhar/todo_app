@@ -49,6 +49,10 @@ class HomeScreen extends StatelessWidget {
               : Column(
                   children: [
                     const SizedBox(height: 8),
+                    _buildProgressCard(context, provider),
+                    const SizedBox(height: 12),
+                    _buildSearchBar(context, provider),
+                    const SizedBox(height: 8),
                     _buildCategoryChips(context, provider),
                     const SizedBox(height: 8),
                     Expanded(
@@ -70,6 +74,98 @@ class HomeScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  // Progress card
+  Widget _buildProgressCard(BuildContext context, TaskProvider provider) {
+    final total = provider.tasks.length;
+    final completed = provider.tasks.where((t) => t.isCompleted).length;
+    final progress = total == 0 ? 0.0 : completed / total;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withOpacity(0.7),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Today\'s Progress',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '$completed/$total',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.white.withOpacity(0.3),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              total == 0
+                  ? 'No tasks yet!'
+                  : '${(progress * 100).toInt()}% completed',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Search bar
+  Widget _buildSearchBar(BuildContext context, TaskProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        onChanged: (value) => provider.searchTasks(value),
+        decoration: InputDecoration(
+          hintText: 'Search tasks...',
+          prefixIcon: const Icon(Icons.search_rounded),
+          suffixIcon: provider.searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => provider.searchTasks(''),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+        ),
+      ),
     );
   }
 
@@ -119,7 +215,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Task List
+  // Task list
   Widget _buildTaskList(BuildContext context, TaskProvider provider) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),

@@ -78,10 +78,10 @@ class TaskCard extends StatelessWidget {
                   ),
                   child: task.isCompleted
                       ? const Icon(
-                          Icons.check_rounded,
-                          size: 16,
-                          color: Colors.white,
-                        )
+                    Icons.check_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  )
                       : null,
                 ),
               ),
@@ -102,8 +102,8 @@ class TaskCard extends StatelessWidget {
                             : null,
                         color: task.isCompleted
                             ? Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.5)
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.5)
                             : null,
                       ),
                     ),
@@ -188,10 +188,10 @@ class TaskCard extends StatelessWidget {
                             DateFormat('dd MMM').format(task.dueDate!),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.5),
-                                ),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.5),
+                            ),
                           ),
                         ],
                       ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/task_provider.dart';
+import '../models/task_model.dart';
+import '../theme/app_theme.dart';
 import 'add_task_screen.dart';
 import '../widgets/task_card.dart';
 
@@ -11,73 +13,77 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(
       builder: (context, provider, _) {
-        return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: AppBar(
+        return GestureDetector(
+          // Tap anywhere to dismiss keyboard
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Tasks',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+            appBar: AppBar(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Tasks',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  '${provider.filteredTasks.length} tasks',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                  Text(
+                    '${provider.filteredTasks.length} tasks',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
+                ],
+              ),
+              actions: [
+                // Dark mode toggle button
+                IconButton(
+                  icon: Icon(
+                    provider.isDarkMode
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                  ),
+                  onPressed: provider.toggleDarkMode,
                 ),
               ],
             ),
-            actions: [
-              // Dark mode toggle button
-              IconButton(
-                icon: Icon(
-                  provider.isDarkMode
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded,
+            body: provider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+              children: [
+                const SizedBox(height: 8),
+                _buildProgressCard(context, provider),
+                const SizedBox(height: 12),
+                _buildSearchBar(context, provider),
+                const SizedBox(height: 8),
+                _buildCategoryChips(context, provider),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: provider.filteredTasks.isEmpty
+                      ? _buildEmptyState(context)
+                      : _buildTaskList(context, provider),
                 ),
-                onPressed: provider.toggleDarkMode,
-              ),
-            ],
-          ),
-          body: provider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    _buildProgressCard(context, provider),
-                    const SizedBox(height: 12),
-                    _buildSearchBar(context, provider),
-                    const SizedBox(height: 8),
-                    _buildCategoryChips(context, provider),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: provider.filteredTasks.isEmpty
-                          ? _buildEmptyState(context)
-                          : _buildTaskList(context, provider),
-                    ),
-                  ],
-                ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-              );
-            },
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('New Task'),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+                );
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New Task'),
+            ),
           ),
         );
       },
     );
   }
 
-  // Progress card
+  // Progress card with priority breakdown
   Widget _buildProgressCard(BuildContext context, TaskProvider provider) {
     final total = provider.tasks.length;
     final completed = provider.tasks.where((t) => t.isCompleted).length;
@@ -126,7 +132,8 @@ class HomeScreen extends StatelessWidget {
                 value: progress,
                 minHeight: 8,
                 backgroundColor: Colors.white.withOpacity(0.3),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor:
+                const AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             ),
             const SizedBox(height: 8),
@@ -138,9 +145,66 @@ class HomeScreen extends StatelessWidget {
                 color: Colors.white.withOpacity(0.8),
               ),
             ),
+            const SizedBox(height: 12),
+            // Priority breakdown
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildPriorityCount(
+                  context,
+                  'High',
+                  provider.tasks
+                      .where((t) => t.priority == Priority.high)
+                      .length,
+                  AppTheme.highPriority,
+                ),
+                _buildPriorityCount(
+                  context,
+                  'Medium',
+                  provider.tasks
+                      .where((t) => t.priority == Priority.medium)
+                      .length,
+                  AppTheme.mediumPriority,
+                ),
+                _buildPriorityCount(
+                  context,
+                  'Low',
+                  provider.tasks
+                      .where((t) => t.priority == Priority.low)
+                      .length,
+                  AppTheme.lowPriority,
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  // Priority count widget
+  Widget _buildPriorityCount(
+      BuildContext context,
+      String label,
+      int count,
+      Color color,
+      ) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+      ],
     );
   }
 
@@ -155,9 +219,9 @@ class HomeScreen extends StatelessWidget {
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: provider.searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => provider.searchTasks(''),
-                )
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => provider.searchTasks(''),
+          )
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -207,7 +271,10 @@ class HomeScreen extends StatelessWidget {
           Text(
             'Tap + to add new task',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withOpacity(0.5),
             ),
           ),
         ],

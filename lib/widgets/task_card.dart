@@ -42,7 +42,7 @@ class TaskCard extends StatelessWidget {
         child: const Icon(Icons.delete_rounded, color: Colors.white),
       ),
       child: GestureDetector(
-        // Long press করলে edit screen খুলবে
+        // Long press to open edit screen
         onLongPress: () {
           Navigator.push(
             context,
@@ -101,9 +101,10 @@ class TaskCard extends StatelessWidget {
                             ? TextDecoration.lineThrough
                             : null,
                         color: task.isCompleted
-                            ? Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.5)
+                            ? Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.5)
                             : null,
                       ),
                     ),
@@ -114,9 +115,10 @@ class TaskCard extends StatelessWidget {
                       Text(
                         task.description,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -135,9 +137,8 @@ class TaskCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: _priorityColor(
-                              task.priority,
-                            ).withOpacity(0.15),
+                            color: _priorityColor(task.priority)
+                                .withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -158,9 +159,10 @@ class TaskCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.1),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -173,24 +175,35 @@ class TaskCard extends StatelessWidget {
                           ),
                         ),
 
-                        // Due date
+                        // Due date — red if overdue
                         if (task.dueDate != null) ...[
                           const SizedBox(width: 8),
                           Icon(
                             Icons.calendar_today_rounded,
                             size: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.5),
+                            color: task.dueDate!.isBefore(DateTime.now()) &&
+                                !task.isCompleted
+                                ? Colors.red
+                                : Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.5),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             DateFormat('dd MMM').format(task.dueDate!),
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
+                              color: task.dueDate!
+                                  .isBefore(DateTime.now()) &&
+                                  !task.isCompleted
+                                  ? Colors.red
+                                  : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.5),
                             ),
                           ),
                         ],

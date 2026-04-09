@@ -14,7 +14,6 @@ class HomeScreen extends StatelessWidget {
     return Consumer<TaskProvider>(
       builder: (context, provider, _) {
         return GestureDetector(
-          // Tap anywhere to dismiss keyboard
           onTap: () => FocusScope.of(context).unfocus(),
           child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -38,6 +37,11 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               actions: [
+                // Sort button
+                IconButton(
+                  icon: const Icon(Icons.sort_rounded),
+                  onPressed: () => _showSortSheet(context, provider),
+                ),
                 // Dark mode toggle button
                 IconButton(
                   icon: Icon(
@@ -79,6 +83,88 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         );
+      },
+    );
+  }
+
+  // Sort bottom sheet
+  void _showSortSheet(BuildContext context, TaskProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sort By',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSortTile(
+                context,
+                provider,
+                label: 'Due Date',
+                icon: Icons.calendar_today_rounded,
+                value: SortBy.date,
+              ),
+              _buildSortTile(
+                context,
+                provider,
+                label: 'Priority',
+                icon: Icons.flag_rounded,
+                value: SortBy.priority,
+              ),
+              _buildSortTile(
+                context,
+                provider,
+                label: 'Name',
+                icon: Icons.sort_by_alpha_rounded,
+                value: SortBy.name,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Sort option tile
+  Widget _buildSortTile(
+      BuildContext context,
+      TaskProvider provider, {
+        required String label,
+        required IconData icon,
+        required SortBy value,
+      }) {
+    final isSelected = provider.sortBy == value;
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isSelected ? Theme.of(context).colorScheme.primary : null,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Theme.of(context).colorScheme.primary : null,
+          fontWeight: isSelected ? FontWeight.bold : null,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_rounded,
+          color: Theme.of(context).colorScheme.primary)
+          : null,
+      onTap: () {
+        provider.setSortBy(value);
+        Navigator.pop(context);
       },
     );
   }

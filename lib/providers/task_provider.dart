@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../models/task_model.dart';
 import '../services/firebase_service.dart';
 
+enum SortBy { date, priority, name }
+
 class TaskProvider extends ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
 
   List<TaskModel> _tasks = [];
   String _selectedCategory = 'All';
   String _searchQuery = '';
+  SortBy _sortBy = SortBy.date;
   bool _isDarkMode = false;
   bool _isLoading = false;
 
@@ -15,16 +18,19 @@ class TaskProvider extends ChangeNotifier {
   List<TaskModel> get tasks => _tasks;
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
+  SortBy get sortBy => _sortBy;
   bool get isDarkMode => _isDarkMode;
   bool get isLoading => _isLoading;
 
-  // Filter by category and search query
+  // Filter by category, search query and sort
   List<TaskModel> get filteredTasks {
     List<TaskModel> result = _tasks;
 
     // Filter by category
     if (_selectedCategory != 'All') {
-      result = result.where((task) => task.category == _selectedCategory).toList();
+      result = result
+          .where((task) => task.category == _selectedCategory)
+          .toList();
     }
 
     // Filter by search query
@@ -33,6 +39,24 @@ class TaskProvider extends ChangeNotifier {
           .where((task) =>
           task.title.toLowerCase().contains(_searchQuery.toLowerCase()))
           .toList();
+    }
+
+    // Sort
+    switch (_sortBy) {
+      case SortBy.date:
+        result.sort((a, b) {
+          if (a.dueDate == null && b.dueDate == null) return 0;
+          if (a.dueDate == null) return 1;
+          if (b.dueDate == null) return -1;
+          return a.dueDate!.compareTo(b.dueDate!);
+        });
+        break;
+      case SortBy.priority:
+        result.sort((a, b) => a.priority.index.compareTo(b.priority.index));
+        break;
+      case SortBy.name:
+        result.sort((a, b) => a.title.compareTo(b.title));
+        break;
     }
 
     return result;
@@ -86,6 +110,12 @@ class TaskProvider extends ChangeNotifier {
   // Search tasks by title
   void searchTasks(String query) {
     _searchQuery = query;
+    notifyListeners();
+  }
+
+  // Change sort order
+  void setSortBy(SortBy sortBy) {
+    _sortBy = sortBy;
     notifyListeners();
   }
 

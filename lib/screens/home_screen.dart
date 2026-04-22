@@ -1,383 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/task_provider.dart';
-import '../models/task_model.dart';
-import '../theme/app_theme.dart';
+import '../widgets/category_chips.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/progress_card.dart';
+import '../widgets/search_bar.dart';
+import '../widgets/task_list.dart';
 import 'add_task_screen.dart';
-import '../widgets/task_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TaskProvider>(
-      builder: (context, provider, _) {
-        return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Tasks',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${provider.filteredTasks.length} tasks',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                // Sort button
-                IconButton(
-                  icon: const Icon(Icons.sort_rounded),
-                  onPressed: () => _showSortSheet(context, provider),
-                ),
-                // Dark mode toggle button
-                IconButton(
-                  icon: Icon(
-                    provider.isDarkMode
-                        ? Icons.light_mode_rounded
-                        : Icons.dark_mode_rounded,
-                  ),
-                  onPressed: provider.toggleDarkMode,
-                ),
-              ],
-            ),
-            body: provider.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-              children: [
-                const SizedBox(height: 8),
-                _buildProgressCard(context, provider),
-                const SizedBox(height: 12),
-                _buildSearchBar(context, provider),
-                const SizedBox(height: 8),
-                _buildCategoryChips(context, provider),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: provider.filteredTasks.isEmpty
-                      ? _buildEmptyState(context)
-                      : _buildTaskList(context, provider),
-                ),
-              ],
-            ),
-            floatingActionButton: FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-                );
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('New Task'),
-            ),
-          ),
-        );
-      },
-    );
-  }
+    final provider = context.watch<TaskProvider>();
+    final isDark = provider.isDarkMode;
 
-  // Sort bottom sheet
-  void _showSortSheet(BuildContext context, TaskProvider provider) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sort By',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildSortTile(
-                context,
-                provider,
-                label: 'Due Date',
-                icon: Icons.calendar_today_rounded,
-                value: SortBy.date,
-              ),
-              _buildSortTile(
-                context,
-                provider,
-                label: 'Priority',
-                icon: Icons.flag_rounded,
-                value: SortBy.priority,
-              ),
-              _buildSortTile(
-                context,
-                provider,
-                label: 'Name',
-                icon: Icons.sort_by_alpha_rounded,
-                value: SortBy.name,
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // Sort option tile
-  Widget _buildSortTile(
-      BuildContext context,
-      TaskProvider provider, {
-        required String label,
-        required IconData icon,
-        required SortBy value,
-      }) {
-    final isSelected = provider.sortBy == value;
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? Theme.of(context).colorScheme.primary : null,
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Theme.of(context).colorScheme.primary : null,
-          fontWeight: isSelected ? FontWeight.bold : null,
-        ),
-      ),
-      trailing: isSelected
-          ? Icon(Icons.check_rounded,
-          color: Theme.of(context).colorScheme.primary)
-          : null,
-      onTap: () {
-        provider.setSortBy(value);
-        Navigator.pop(context);
-      },
-    );
-  }
-
-  // Progress card with priority breakdown
-  Widget _buildProgressCard(BuildContext context, TaskProvider provider) {
-    final total = provider.tasks.length;
-    final completed = provider.tasks.where((t) => t.isCompleted).length;
-    final progress = total == 0 ? 0.0 : completed / total;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primary.withOpacity(0.7),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
+    return Scaffold(
+      backgroundColor:
+      isDark ? const Color(0xFF0F0F14) : const Color(0xFFF5F5FA),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Today\'s Progress',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 2),
+                        Text(
+                          'My Tasks',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A2E),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  '$completed/$total',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  _IconBtn(
+                    icon: isDark
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                    isDark: isDark,
+                    onTap: provider.toggleDarkMode,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: Colors.white.withOpacity(0.3),
-                valueColor:
-                const AlwaysStoppedAnimation<Color>(Colors.white),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              total == 0
-                  ? 'No tasks yet!'
-                  : '${(progress * 100).toInt()}% completed',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
+
+            const TaskSearchBar(),
             const SizedBox(height: 12),
-            // Priority breakdown
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildPriorityCount(
-                  context,
-                  'High',
-                  provider.tasks
-                      .where((t) => t.priority == Priority.high)
-                      .length,
-                  AppTheme.highPriority,
-                ),
-                _buildPriorityCount(
-                  context,
-                  'Medium',
-                  provider.tasks
-                      .where((t) => t.priority == Priority.medium)
-                      .length,
-                  AppTheme.mediumPriority,
-                ),
-                _buildPriorityCount(
-                  context,
-                  'Low',
-                  provider.tasks
-                      .where((t) => t.priority == Priority.low)
-                      .length,
-                  AppTheme.lowPriority,
-                ),
-              ],
+            const CategoryChips(),
+            const SizedBox(height: 12),
+            const ProgressCard(),
+            const SizedBox(height: 16),
+
+            Expanded(
+              child: provider.filteredTasks.isEmpty
+                  ? const EmptyState()
+                  : const TaskList(),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // Priority count widget
-  Widget _buildPriorityCount(
-      BuildContext context,
-      String label,
-      int count,
-      Color color,
-      ) {
-    return Column(
-      children: [
-        Text(
-          '$count',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AddTaskScreen()),
         ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white.withOpacity(0.8),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Search bar
-  Widget _buildSearchBar(BuildContext context, TaskProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: TextField(
-        onChanged: (value) => provider.searchTasks(value),
-        decoration: InputDecoration(
-          hintText: 'Search tasks...',
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: provider.searchQuery.isNotEmpty
-              ? IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: () => provider.searchTasks(''),
-          )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
+        backgroundColor: const Color(0xFF6C63FF),
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text(
+          'New Task',
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
     );
   }
+}
 
-  // Category filter chips
-  Widget _buildCategoryChips(BuildContext context, TaskProvider provider) {
-    return SizedBox(
-      height: 45,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: provider.categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final category = provider.categories[index];
-          final isSelected = provider.selectedCategory == category;
-          return FilterChip(
-            label: Text(category),
-            selected: isSelected,
-            onSelected: (_) => provider.setCategory(category),
-            showCheckmark: false,
-          );
-        },
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final bool isDark;
+  final VoidCallback onTap;
+  const _IconBtn(
+      {required this.icon, required this.isDark, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon,
+            size: 20,
+            color: isDark ? Colors.white70 : Colors.black54),
       ),
-    );
-  }
-
-  // Empty state when no tasks
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.task_alt_rounded,
-            size: 80,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tap + to add new task',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Task list
-  Widget _buildTaskList(BuildContext context, TaskProvider provider) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: provider.filteredTasks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final task = provider.filteredTasks[index];
-        return TaskCard(task: task);
-      },
     );
   }
 }

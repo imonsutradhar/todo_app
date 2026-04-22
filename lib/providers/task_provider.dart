@@ -1,44 +1,33 @@
 import 'package:flutter/material.dart';
 import '../models/task_model.dart';
-import '../services/firebase_service.dart';
 
 enum SortBy { date, priority, name }
 
 class TaskProvider extends ChangeNotifier {
-  final FirebaseService _firebaseService = FirebaseService();
-
   List<TaskModel> _tasks = [];
   String _selectedCategory = 'All';
   String _searchQuery = '';
   SortBy _sortBy = SortBy.date;
   bool _isDarkMode = false;
-  bool _isLoading = false;
 
-  // Getters
+  //getters
   List<TaskModel> get tasks => _tasks;
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
   SortBy get sortBy => _sortBy;
   bool get isDarkMode => _isDarkMode;
-  bool get isLoading => _isLoading;
 
-  // Filter by category, search query and sort
+  //filter by category
   List<TaskModel> get filteredTasks {
     List<TaskModel> result = _tasks;
 
-    // Filter by category
     if (_selectedCategory != 'All') {
-      result = result
-          .where((task) => task.category == _selectedCategory)
-          .toList();
+      result = result.where((task) => task.category == _selectedCategory).toList();
     }
 
-    // Filter by search query
+    //search filter
     if (_searchQuery.isNotEmpty) {
-      result = result
-          .where((task) =>
-          task.title.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
+      result = result.where((task) => task.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
     }
 
     // Sort
@@ -62,64 +51,59 @@ class TaskProvider extends ChangeNotifier {
     return result;
   }
 
-  // All unique categories
+  //categories
   List<String> get categories {
     final cats = _tasks.map((t) => t.category).toSet().toList();
     return ['All', ...cats];
   }
 
-  // Load real-time tasks from Firebase
-  void loadTasks() {
-    _isLoading = true;
+
+  //add task
+  void addTask(TaskModel task) {
+    _tasks.add(task);
     notifyListeners();
+  }
 
-    _firebaseService.getTasksStream().listen((tasks) {
-      _tasks = tasks;
-      _isLoading = false;
+  // toggle complete
+  void toggleTaskComplete(TaskModel task) {
+    task.isCompleted = !task.isCompleted;
+    notifyListeners();
+  }
+
+  //delete task
+  void deleteTask (String taskId) {
+    tasks.removeWhere((task) => task.id == taskId);
+    notifyListeners();
+  }
+
+  //update task
+  void updateTask(TaskModel updatedTask) {
+    final index = tasks.indexWhere((t) => t.id == updatedTask.id);
+    if (index != -1) {
+      _tasks[index] = updatedTask;
       notifyListeners();
-    });
+    }
   }
 
-  // Add new task
-  Future<void> addTask(TaskModel task) async {
-    await _firebaseService.addTask(task);
-  }
-
-  // Toggle task complete/incomplete
-  Future<void> toggleTaskComplete(TaskModel task) async {
-    final updated = task.copyWith(isCompleted: !task.isCompleted);
-    await _firebaseService.updateTask(updated);
-  }
-
-  // Delete task
-  Future<void> deleteTask(String taskId) async {
-    await _firebaseService.deleteTask(taskId);
-  }
-
-  // Update existing task
-  Future<void> updateTask(TaskModel task) async {
-    await _firebaseService.updateTask(task);
-  }
-
-  // Change category filter
+  //category filter
   void setCategory(String category) {
     _selectedCategory = category;
     notifyListeners();
   }
 
-  // Search tasks by title
+  //search tasks by title
   void searchTasks(String query) {
     _searchQuery = query;
     notifyListeners();
   }
 
-  // Change sort order
+  //change sort order
   void setSortBy(SortBy sortBy) {
     _sortBy = sortBy;
     notifyListeners();
   }
 
-  // Toggle dark mode
+  //dark mode
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
     notifyListeners();

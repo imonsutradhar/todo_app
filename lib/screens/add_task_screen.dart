@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:intl/intl.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
-import '../services/firebase_service.dart';
-import '../theme/app_theme.dart';
 
 class AddTaskScreen extends StatefulWidget {
-  final TaskModel? task; // null হলে add mode, থাকলে edit mode
-
+  final TaskModel? task;
   const AddTaskScreen({super.key, this.task});
 
   @override
@@ -18,255 +14,234 @@ class AddTaskScreen extends StatefulWidget {
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final _titleController = TextEditingController();
-  final _descController = TextEditingController();
   final _categoryController = TextEditingController(text: 'General');
-
+  final _descController = TextEditingController();
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
+  bool get _isEdit => widget.task != null;
+
+  static const _accent = Color(0xFF6C63FF);
+  static const _priorityConfig = {
+    Priority.high:   (label: 'High',   color: Color(0xFFEF4444), icon: Icons.local_fire_department_rounded),
+    Priority.medium: (label: 'Medium', color: Color(0xFFF59E0B), icon: Icons.trending_flat_rounded),
+    Priority.low:    (label: 'Low',    color: Color(0xFF22C55E), icon: Icons.south_rounded),
+  };
 
   @override
   void initState() {
     super.initState();
-    // Edit mode হলে existing data দিয়ে fields fill করো
-    if (widget.task != null) {
+    if (_isEdit) {
       _titleController.text = widget.task!.title;
-      _descController.text = widget.task!.description;
       _categoryController.text = widget.task!.category;
       _priority = widget.task!.priority;
       _dueDate = widget.task!.dueDate;
     }
   }
 
-  // Dispose controllers when screen closes
   @override
   void dispose() {
     _titleController.dispose();
-    _descController.dispose();
     _categoryController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
-  // Date picker
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
+      initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: _accent, onPrimary: Colors.white,
+            surface: Color(0xFF1E1E2E), onSurface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => _dueDate = picked);
   }
 
-  // Save or update task
-  Future<void> _saveTask() async {
-    if (_titleController.text.trim().isEmpty) return;
-
+  void _saveTask() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please enter a task title'),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+      return;
+    }
     final provider = context.read<TaskProvider>();
-
-    if (widget.task != null) {
-      // Edit mode — existing task update করো
-      final updated = widget.task!.copyWith(
+    if (_isEdit) {
+      provider.updateTask(widget.task!.copyWith(
         title: _titleController.text.trim(),
-        description: _descController.text.trim(),
-        category: _categoryController.text.trim().isEmpty
-            ? 'General'
-            : _categoryController.text.trim(),
+        category: _categoryController.text.trim(),
         priority: _priority,
         dueDate: _dueDate,
-      );
-      await provider.updateTask(updated);
+      ));
     } else {
-      // Add mode — নতুন task তৈরি করো
-      final task = TaskModel(
+      provider.addTask(TaskModel(
         id: const Uuid().v4(),
         title: _titleController.text.trim(),
-        description: _descController.text.trim(),
-        category: _categoryController.text.trim().isEmpty
-            ? 'General'
-            : _categoryController.text.trim(),
+        category: _categoryController.text.trim().isEmpty ? 'General' : _categoryController.text.trim(),
         priority: _priority,
         dueDate: _dueDate,
-        userId: FirebaseService().currentUserId ?? '',
-      );
-      await provider.addTask(task);
+      ));
     }
-
-    if (mounted) Navigator.pop(context);
+    Navigator.pop(context);
   }
 
-  // Priority color helper
-  Color _priorityColor(Priority p) {
-    switch (p) {
-      case Priority.high:
-        return AppTheme.highPriority;
-      case Priority.medium:
-        return AppTheme.mediumPriority;
-      case Priority.low:
-        return AppTheme.lowPriority;
-    }
+  String _formatDate(DateTime d) {
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final diff = d.difference(DateTime.now()).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Tomorrow';
+    return '${m[d.month - 1]} ${d.day}, ${d.year}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0F0F14) : const Color(0xFFF5F5FA);
+    final card = isDark ? const Color(0xFF1A1A2A) : Colors.white;
+    final border = isDark ? Colors.white10 : Colors.black.withOpacity(0.08);
+    final hint = isDark ? Colors.white24 : Colors.black26;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+
+    InputDecoration fieldDecor(String hintText, {IconData? icon}) => InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(fontSize: 14, color: hint),
+      prefixIcon: icon != null ? Icon(icon, size: 18, color: hint) : null,
+      filled: true, fillColor: card,
+      contentPadding: EdgeInsets.symmetric(horizontal: icon != null ? 0 : 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _accent, width: 1.5)),
+    );
+
+    Widget label(String text) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: isDark ? Colors.white54 : Colors.black45)),
+    );
+
     return Scaffold(
+      backgroundColor: bg,
       appBar: AppBar(
-        title: Text(widget.task != null ? 'Edit Task' : 'New Task'),
-        actions: [
-          // Save button in appbar
-          TextButton(
-            onPressed: _saveTask,
-            child: const Text('Save'),
+        backgroundColor: bg, elevation: 0, centerTitle: true,
+        title: Text(_isEdit ? 'Edit Task' : 'New Task',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: textColor)),
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.only(left: 16),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.arrow_back_ios_rounded, size: 16, color: isDark ? Colors.white70 : Colors.black54),
           ),
-        ],
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title field
-            TextField(
-              controller: _titleController,
-              autofocus: true,
-              style: Theme.of(context).textTheme.titleLarge,
-              decoration: InputDecoration(
-                hintText: 'Task title...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
+            label('Task Title'),
+            TextField(controller: _titleController, autofocus: true, maxLines: 1,
+                style: TextStyle(fontSize: 14, color: textColor),
+                decoration: fieldDecor('What needs to be done?', icon: Icons.check_circle_outline_rounded)),
 
-            // Description field
-            TextField(
-              controller: _descController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Description (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Category field
-            TextField(
-              controller: _categoryController,
-              decoration: InputDecoration(
-                hintText: 'Category',
-                prefixIcon: const Icon(Icons.label_outline_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
             const SizedBox(height: 20),
+            label('Description'),
+            TextField(controller: _descController, maxLines: 4,
+                style: TextStyle(fontSize: 14, color: textColor),
+                decoration: fieldDecor('Add notes or details...')),
 
-            // Priority selector
-            Text(
-              'Priority',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            label('Category'),
+            TextField(controller: _categoryController, maxLines: 1,
+                style: TextStyle(fontSize: 14, color: textColor),
+                decoration: fieldDecor('e.g. Work, Personal', icon: Icons.label_outline_rounded)),
+
+            const SizedBox(height: 20),
+            label('Priority'),
+            const SizedBox(height: 2),
             Row(
               children: Priority.values.map((p) {
-                final isSelected = _priority == p;
+                final cfg = _priorityConfig[p]!;
+                final sel = _priority == p;
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: EdgeInsets.only(right: p == Priority.low ? 0 : 8),
                     child: GestureDetector(
                       onTap: () => setState(() => _priority = p),
                       child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                        duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? _priorityColor(p)
-                              : _priorityColor(p).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: sel ? cfg.color.withOpacity(isDark ? 0.2 : 0.12) : card,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: sel ? cfg.color.withOpacity(0.6) : border, width: sel ? 1.5 : 1),
+                          boxShadow: sel ? [BoxShadow(color: cfg.color.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] : [],
                         ),
-                        child: Center(
-                          child: Text(
-                            p.name.toUpperCase(),
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : _priorityColor(p),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
+                        child: Column(children: [
+                          Icon(cfg.icon, size: 20, color: sel ? cfg.color : hint),
+                          const SizedBox(height: 4),
+                          Text(cfg.label, style: TextStyle(fontSize: 12, fontWeight: sel ? FontWeight.w700 : FontWeight.w400, color: sel ? cfg.color : hint)),
+                        ]),
                       ),
                     ),
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 20),
 
-            // Due date picker
-            Text(
-              'Due Date',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            label('Due Date'),
             GestureDetector(
               onTap: _pickDate,
-              child: Container(
-                padding: const EdgeInsets.all(16),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _dueDate != null ? _accent.withOpacity(isDark ? 0.15 : 0.08) : card,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _dueDate != null ? _accent.withOpacity(0.4) : border, width: _dueDate != null ? 1.5 : 1),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _dueDate == null
-                          ? 'Select due date'
-                          : DateFormat('dd MMM, yyyy').format(_dueDate!),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const Spacer(),
-                    if (_dueDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: const Icon(Icons.close_rounded),
-                      ),
-                  ],
-                ),
+                child: Row(children: [
+                  Icon(Icons.calendar_today_rounded, size: 18, color: _dueDate != null ? _accent : hint),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(
+                    _dueDate != null ? _formatDate(_dueDate!) : 'Select a due date',
+                    style: TextStyle(fontSize: 14, fontWeight: _dueDate != null ? FontWeight.w600 : FontWeight.w400, color: _dueDate != null ? _accent : hint),
+                  )),
+                  if (_dueDate != null)
+                    GestureDetector(onTap: () => setState(() => _dueDate = null),
+                        child: Icon(Icons.close_rounded, size: 16, color: _accent.withOpacity(0.6))),
+                ]),
               ),
             ),
-            const SizedBox(height: 32),
 
-            // Save button
+            const SizedBox(height: 32),
             SizedBox(
-              width: double.infinity,
-              child: FilledButton(
+              width: double.infinity, height: 54,
+              child: ElevatedButton(
                 onPressed: _saveTask,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text(
-                  'Save Task',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(_isEdit ? Icons.save_rounded : Icons.add_task_rounded, size: 20),
+                  const SizedBox(width: 8),
+                  Text(_isEdit ? 'Save Changes' : 'Create Task',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ]),
               ),
             ),
           ],

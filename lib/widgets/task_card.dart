@@ -1,209 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
-import '../theme/app_theme.dart';
 import '../screens/add_task_screen.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
-
   const TaskCard({super.key, required this.task});
 
-  // Priority color helper
-  Color _priorityColor(Priority p) {
-    switch (p) {
-      case Priority.high:
-        return AppTheme.highPriority;
-      case Priority.medium:
-        return AppTheme.mediumPriority;
-      case Priority.low:
-        return AppTheme.lowPriority;
-    }
-  }
+  static const _priorityColor = {
+    Priority.high: Color(0xFFEF4444),
+    Priority.medium: Color(0xFFF59E0B),
+    Priority.low: Color(0xFF22C55E),
+  };
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<TaskProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = _priorityColor[task.priority]!;
 
     return Dismissible(
-      // Swipe left to delete
       key: Key(task.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => provider.deleteTask(task.id),
+      onDismissed: (_) => context.read<TaskProvider>().deleteTask(task.id),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red,
+          color: const Color(0xFFEF4444).withOpacity(0.12),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete_rounded, color: Colors.white),
+        child: const Icon(Icons.delete_outline_rounded,
+            color: Color(0xFFEF4444), size: 22),
       ),
       child: GestureDetector(
-        // Long press to open edit screen
-        onLongPress: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AddTaskScreen(task: task)),
-          );
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddTaskScreen(task: task)),
+        ),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: isDark ? const Color(0xFF1A1A2A) : Colors.white,
             borderRadius: BorderRadius.circular(16),
+            border: Border(
+              left: BorderSide(color: color, width: 3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              // Complete/incomplete checkbox
               GestureDetector(
-                onTap: () => provider.toggleTaskComplete(task),
+                onTap: () =>
+                    context.read<TaskProvider>().toggleTaskComplete(task),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
+                    color: task.isCompleted ? color : Colors.transparent,
                     shape: BoxShape.circle,
-                    color: task.isCompleted
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: task.isCompleted
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.outline,
-                      width: 2,
-                    ),
+                    border: Border.all(color: color, width: 2),
                   ),
                   child: task.isCompleted
-                      ? const Icon(
-                    Icons.check_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  )
+                      ? const Icon(Icons.check_rounded,
+                      size: 13, color: Colors.white)
                       : null,
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Task details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       task.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: TextStyle(
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        color: task.isCompleted
+                            ? (isDark ? Colors.white30 : Colors.black26)
+                            : (isDark ? Colors.white : const Color(0xFF1A1A2E)),
                         decoration: task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
-                        color: task.isCompleted
-                            ? Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.5)
-                            : null,
                       ),
                     ),
-
-                    // Description
-                    if (task.description.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        task.description,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-
-                    const SizedBox(height: 8),
-
-                    // Priority & due date row
+                    const SizedBox(height: 3),
                     Row(
                       children: [
-                        // Priority badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _priorityColor(task.priority)
-                                .withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            task.priority.name.toUpperCase(),
-                            style: TextStyle(
-                              color: _priorityColor(task.priority),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Icon(Icons.label_outline_rounded,
+                            size: 11,
+                            color: isDark ? Colors.white30 : Colors.black38),
+                        const SizedBox(width: 3),
+                        Text(
+                          task.category,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white30 : Colors.black38,
                           ),
                         ),
-                        const SizedBox(width: 8),
-
-                        // Category badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            task.category,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        // Due date — red if overdue
                         if (task.dueDate != null) ...[
                           const SizedBox(width: 8),
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            size: 12,
-                            color: task.dueDate!.isBefore(DateTime.now()) &&
-                                !task.isCompleted
-                                ? Colors.red
-                                : Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.5),
-                          ),
-                          const SizedBox(width: 4),
+                          Icon(Icons.calendar_today_rounded,
+                              size: 11,
+                              color: isDark ? Colors.white30 : Colors.black38),
+                          const SizedBox(width: 3),
                           Text(
-                            DateFormat('dd MMM').format(task.dueDate!),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                              color: task.dueDate!
-                                  .isBefore(DateTime.now()) &&
-                                  !task.isCompleted
-                                  ? Colors.red
-                                  : Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.5),
+                            _formatDate(task.dueDate!),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _isOverdue(task.dueDate!)
+                                  ? const Color(0xFFEF4444)
+                                  : (isDark ? Colors.white30 : Colors.black38),
                             ),
                           ),
                         ],
@@ -212,10 +127,43 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  task.priority.name,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  bool _isOverdue(DateTime date) =>
+      date.isBefore(DateTime.now()) && !task.isCompleted;
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final now = DateTime.now();
+    final diff =
+        date.difference(DateTime(now.year, now.month, now.day)).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Tomorrow';
+    if (diff == -1) return 'Yesterday';
+    return '${months[date.month - 1]} ${date.day}';
   }
 }

@@ -45,7 +45,7 @@ lib/
 
 <p align="center">
   <img src="assets/screenshot/home.jpg" width="220"/>
-  <img src="assets/screenshots/home_light.jpg" width="220"/>
+  <img src="assets/screenshot/home_light.jpg" width="220"/>
 </p>
 
 <p align="center">

@@ -44,13 +44,13 @@ lib/
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/home.jpg" width="220"/>
+  <img src="assets/screenshot/home.jpg" width="220"/>
   <img src="assets/screenshots/home_light.jpg" width="220"/>
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/new.jpg" width="220"/>
-  <img src="assets/screenshots/edit.jpg" width="220"/>
+  <img src="assets/screenshot/new.jpg" width="220"/>
+  <img src="assets/screenshot/edit.jpg" width="220"/>
 </p>
 
 

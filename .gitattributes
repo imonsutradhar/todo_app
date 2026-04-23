@@ -1,1 +1,3 @@
 web/* linguist-vendored
+build/* linguist-vendored
+android/* linguist-vendored
